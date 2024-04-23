@@ -6,6 +6,7 @@ module.exports = {
     display: "hidden",
     hidden: true
   },
+  "infrastructure": "Infrastructure Types",
   "deployments": "Deployments",
   "deployment-types": "Deployment types",
   "continuous-deployment": "Continuous deployment",

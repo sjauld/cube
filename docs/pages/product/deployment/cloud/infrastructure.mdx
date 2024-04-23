@@ -1,0 +1,68 @@
+# Infrastructure Types
+
+Cube Cloud provides three options for infrastructure deployment:
+
+* [Fully managed](#fully-managed) - data in motion, data at rest is on the Cube side.
+* [Fully managed with dedicated pre-aggregation storage)(#dedicated-pre-aggregation-storage) - 
+data in motion is on the Cube side, and data at rest is on the customer side.
+* [Bring Your Own Cloud (BYOC)](#byoc) - both data in motion and data at rest 
+are on the customer side.
+
+
+## Fully managed
+
+This is the most common deployment option, and it is both secure and easy to use.
+In this scenario, everything is deployed on the Cube Cloud infrastructure in
+one of our **Shared** or [Dedicated][ref-dedicated-vpc] VPCs. Cube Cloud
+Control Plane takes care of creating, scaling, and monitoring your Cube
+Deployments, as well as managing Cube Store and persisting pre-aggregated data.
+This option requires the least effort to set up and is available on all pricing plans.
+
+<div style={{ textAlign: "center" }}>
+  <img
+    alt="High-level diagram of the fully managed Cube Cloud Infrastructure option"
+    src="https://ucarecdn.com/fcb57d7a-09ee-4854-9282-db443a5ee61d/"
+    style={{ border: "none" }}
+    width="100%"
+  />
+</div>
+
+## Dedicated Pre-Aggregation Storage
+
+On the (Enterprise Premiere)[https://cube.dev/pricing] plan, Cube Cloud offers
+an additional option that allows moving all data at rest to the customer
+infrastructure. In this scenario, all Cube components reside on the Cube Cloud
+side. However, Cube Store uses a customer-provided object store for reading and
+persisting pre-aggregated data. This provides additional peace of mind when
+processing highly critical business or personal information.
+
+
+<div style={{ textAlign: "center" }}>
+  <img
+    alt="High-level diagram explaining the Dedicated Pre-Aggregation Storage option"
+    src="https://ucarecdn.com/fcb57d7a-09ee-4854-9282-db443a5ee61d/"
+    style={{ border: "none" }}
+    width="100%"
+  />
+</div>
+
+## BYOC
+
+Bring Your Own Cloud, or BYOC is the-highest tier deployment option designed to
+meet strict compliance requirements. In the BYOC scenario, all Cube Cloud
+components interacting with data are pushed over to the customer side while
+still being managed by the Cube Cloud Control Plane. BYOC provides the highest
+levels of security without sacrificing the power of management and development
+tools provided by Cube Cloud. The BYOC option requires hands-on deployment
+and is only available on the (Enterprise Premier)[https://cube.dev/pricing] plan.
+
+<div style={{ textAlign: "center" }}>
+  <img
+    alt="High-level architecture diagram of the Cube Cloud BYOC deployment option"
+    src="https://ucarecdn.com/fcb57d7a-09ee-4854-9282-db443a5ee61d/"
+    style={{ border: "none" }}
+    width="100%"
+  />
+</div>
+
+[ref-dedicated-vpc]: /product/deployment/cloud/vpc
