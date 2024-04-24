@@ -47,6 +47,10 @@ impl SqlQuery {
         index
     }
 
+    pub fn extend_values(&mut self, values: &Vec<Option<String>>) {
+        self.values.extend(values.iter().cloned());
+    }
+
     pub fn replace_sql(&mut self, sql: String) {
         self.sql = sql;
     }
@@ -231,6 +235,7 @@ impl CubeScanWrapperNode {
             self.clone().set_max_limit_for_node(wrapped_plan),
             true,
             Vec::new(),
+            None,
         )
         .await
         .and_then(|SqlGenerationResult { data_source, mut sql, request, column_remapping, .. }| -> result::Result<_, CubeError> {
@@ -313,6 +318,7 @@ impl CubeScanWrapperNode {
         node: Arc<LogicalPlan>,
         can_rename_columns: bool,
         mut values: Vec<Option<String>>,
+        parent_data_source: Option<String>,
     ) -> Pin<Box<dyn Future<Output = result::Result<SqlGenerationResult, CubeError>> + Send>> {
         Box::pin(async move {
             match node.as_ref() {
@@ -436,37 +442,12 @@ impl CubeScanWrapperNode {
                         } else {
                             None
                         };
-                        let mut subqueries_sql = HashMap::new();
-                        for subquery in subqueries.iter() {
-                            let SqlGenerationResult {
-                                data_source: _,
-                                from_alias: _,
-                                column_remapping: _,
-                                sql,
-                                request: _,
-                            } = Self::generate_sql_for_node(
-                                plan.clone(),
-                                transport.clone(),
-                                load_request_meta.clone(),
-                                subquery.clone(),
-                                true,
-                                values,
-                            )
-                            .await?;
 
-                            let (sql_string, new_values) = sql.unpack();
-                            values = new_values;
-
-                            let field = subquery.schema().field(0);
-                            subqueries_sql.insert(field.qualified_name(), sql_string);
-                        }
-
-                        let subqueries_sql = Arc::new(subqueries_sql);
                         let SqlGenerationResult {
                             data_source,
                             from_alias,
                             column_remapping,
-                            sql,
+                            mut sql,
                             request,
                         } = if let Some(ungrouped_scan_node) = ungrouped_scan_node.clone() {
                             let data_sources = ungrouped_scan_node
@@ -487,7 +468,7 @@ impl CubeScanWrapperNode {
                                     ungrouped_scan_node
                                 )));
                             }
-                            let sql = SqlQuery::new("".to_string(), values);
+                            let sql = SqlQuery::new("".to_string(), values.clone());
                             SqlGenerationResult {
                                 data_source: Some(data_sources[0].clone()),
                                 from_alias: ungrouped_scan_node
@@ -507,10 +488,37 @@ impl CubeScanWrapperNode {
                                 load_request_meta.clone(),
                                 from.clone(),
                                 true,
-                                values,
+                                values.clone(),
+                                parent_data_source.clone(),
                             )
                             .await?
                         };
+
+                        let mut subqueries_sql = HashMap::new();
+                        for subquery in subqueries.iter() {
+                            let SqlGenerationResult {
+                                data_source: _,
+                                from_alias: _,
+                                column_remapping: _,
+                                sql: subquery_sql,
+                                request: _,
+                            } = Self::generate_sql_for_node(
+                                plan.clone(),
+                                transport.clone(),
+                                load_request_meta.clone(),
+                                subquery.clone(),
+                                true,
+                                sql.values.clone(),
+                                data_source.clone(),
+                            )
+                            .await?;
+
+                            let (sql_string, new_values) = subquery_sql.unpack();
+                            sql.extend_values(&new_values);
+                            let field = subquery.schema().field(0);
+                            subqueries_sql.insert(field.qualified_name(), sql_string);
+                        }
+                        let subqueries_sql = Arc::new(subqueries_sql);
                         let mut next_remapping = HashMap::new();
                         let alias = alias.or(from_alias.clone());
                         if let Some(data_source) = data_source {
@@ -813,6 +821,13 @@ impl CubeScanWrapperNode {
                         )));
                     }
                 }
+                LogicalPlan::EmptyRelation(_) => Ok(SqlGenerationResult {
+                    data_source: parent_data_source,
+                    from_alias: None,
+                    sql: SqlQuery::new("".to_string(), values.clone()),
+                    column_remapping: None,
+                    request: V1LoadRequestQuery::new(),
+                }),
                 // LogicalPlan::Distinct(_) => {}
                 x => {
                     return Err(CubeError::internal(format!(
