@@ -429,7 +429,7 @@ impl CubeScanWrapperNode {
                                     Some(Arc::new(cube_scan_node.clone()))
                                 } else {
                                     return Err(CubeError::internal(format!(
-                                        "Expected CubeScan node but found: {:?}",
+                                        "Expected ubeScan node but found: {:?}",
                                         plan
                                     )));
                                 }
