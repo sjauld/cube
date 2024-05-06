@@ -1229,7 +1229,6 @@ class ApiGateway {
   }
 
   private parseMemberExpressionsInQuery(query: Query): Query {
-    console.log("!!!!! q, ", query)
     return {
       ...query,
       measures: (query.measures || []).map(m => (typeof m === 'string' ? this.parseMemberExpression(m) : m)),
@@ -1239,11 +1238,8 @@ class ApiGateway {
   }
 
   private parseMemberExpression(memberExpression: string): string | MemberExpression {
-    const obj = JSON.parse(memberExpression);
-    //const match = memberExpression.match(memberExpressionRegex);
-    console.log("memberExpression ", memberExpression);
-    console.log("memberObj ", obj);
-    if (obj) {
+    try {
+      const obj = JSON.parse(memberExpression);
       const args = obj.cube_params;
       args.push(`return \`${obj.expr}\``);
       return {
@@ -1253,7 +1249,7 @@ class ApiGateway {
         expression: Function.constructor.apply(null, args),
         definition: memberExpression,
       };
-    } else {
+    } catch {
       return memberExpression;
     }
   }
